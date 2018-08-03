@@ -23,10 +23,11 @@ import com.digitalpebble.stormcrawler.indexing.StdOutIndexer;
 import com.digitalpebble.stormcrawler.persistence.StdOutStatusUpdater;
 import com.digitalpebble.stormcrawler.spout.MemorySpout;
 
+import com.digitalpebble.stormcrawler.warc.FileTimeSizeRotationPolicy;
 import com.digitalpebble.stormcrawler.warc.WARCFileNameFormat;
 import com.digitalpebble.stormcrawler.warc.WARCHdfsBolt;
 import org.apache.storm.hdfs.bolt.format.FileNameFormat;
-import org.apache.storm.hdfs.bolt.rotation.FileSizeRotationPolicy;
+import org.apache.storm.hdfs.bolt.sync.CountSyncPolicy;
 import org.apache.storm.topology.TopologyBuilder;
 import org.apache.storm.tuple.Fields;
 
@@ -99,14 +100,14 @@ public class CrawlTopology extends ConfigurableTopology {
         WARCHdfsBolt warcbolt = (WARCHdfsBolt) new WARCHdfsBolt()
                 .withFileNameFormat(fileNameFormat);
         warcbolt.withHeader(fields);
-
+        warcbolt.withSyncPolicy(new CountSyncPolicy(1));
         // can specify the filesystem - will use the local FS by default
 //        String fsURL = "hdfs://localhost:9000";
 //        warcbolt.withFsUrl(fsURL);
 
         // a custom max length can be specified - 1 GB will be used as a default
-        FileSizeRotationPolicy rotpol = new FileSizeRotationPolicy(50.0f,
-                FileSizeRotationPolicy.Units.MB);
+        FileTimeSizeRotationPolicy rotpol = new FileTimeSizeRotationPolicy(250.0f, FileTimeSizeRotationPolicy.Units.KB);
+        rotpol.setTimeRotationInterval(10.0f, FileTimeSizeRotationPolicy.TimeUnit.SECONDS);
         warcbolt.withRotationPolicy(rotpol);
         return warcbolt;
     }
